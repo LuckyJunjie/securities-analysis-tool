@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.api import stocks, analysis, macro, alerts, holdings, quotes
+from app.api import holdings_enhanced as holdings
 from app.database import engine, Base
 
 

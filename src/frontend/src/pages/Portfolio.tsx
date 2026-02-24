@@ -5,6 +5,7 @@ export default function Portfolio() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -21,6 +22,18 @@ export default function Portfolio() {
       setError(err.response?.data?.detail || '加载持仓数据失败，请检查后端服务是否运行');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await holdingApi.refreshPrices();
+      await loadData();
+    } catch (err: any) {
+      console.error('Failed to refresh:', err);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -85,7 +98,16 @@ export default function Portfolio() {
 
   return (
     <div>
-      <h1 style={{ marginBottom: '1.5rem' }}>💼 我的持仓</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h1>💼 我的持仓</h1>
+        <button 
+          className="btn btn-primary" 
+          onClick={handleRefresh}
+          disabled={refreshing}
+        >
+          {refreshing ? '刷新中...' : '🔄 刷新价格'}
+        </button>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-4">
@@ -108,16 +130,16 @@ export default function Portfolio() {
             <div className="stat-value" style={{ color: summary.total_profit_loss >= 0 ? '#4caf50' : '#f44336' }}>
               {formatMoney(summary.total_profit_loss)}
             </div>
-            <div className="stat-label">盈亏金额</div>
+            <div className="stat-label">总盈亏</div>
           </div>
         </div>
         
         <div className="card">
           <div className="stat">
-            <div className="stat-value" style={{ color: summary.total_profit_loss_pct >= 0 ? '#4caf50' : '#f44336' }}>
-              {formatPct(summary.total_profit_loss_pct)}
+            <div className="stat-value" style={{ color: summary.today_change >= 0 ? '#4caf50' : '#f44336' }}>
+              {formatMoney(summary.today_change)}
             </div>
-            <div className="stat-label">盈亏比例</div>
+            <div className="stat-label">今日涨跌 {formatPct(summary.today_change_pct)}</div>
           </div>
         </div>
       </div>
@@ -176,6 +198,7 @@ export default function Portfolio() {
                 <th>股数</th>
                 <th>成本</th>
                 <th>现价</th>
+                <th>涨跌</th>
                 <th>市值</th>
                 <th>盈亏</th>
                 <th>盈亏%</th>
@@ -194,6 +217,9 @@ export default function Portfolio() {
                   <td>{h.shares.toLocaleString()}</td>
                   <td>{formatMoney(h.avg_cost)}</td>
                   <td>{formatMoney(h.current_price)}</td>
+                  <td className={getProfitLossClass(h.price_change_pct)}>
+                    {formatPct(h.price_change_pct)}
+                  </td>
                   <td>{formatMoney(h.market_value)}</td>
                   <td className={getProfitLossClass(h.profit_loss)}>
                     {formatMoney(h.profit_loss)}

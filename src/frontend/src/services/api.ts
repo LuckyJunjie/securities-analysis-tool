@@ -1,4 +1,4 @@
-// API Service - Enhanced
+// API Service - Phase 2 Enhanced
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -35,7 +35,10 @@ export interface Holding {
   market_value_cny?: number;
   profit_loss?: number;
   profit_loss_pct?: number;
+  price_change?: number;      // 今日涨跌额
+  price_change_pct?: number;  // 今日涨跌幅
   purchase_date?: string;
+  last_updated?: string;
 }
 
 export interface PortfolioSummary {
@@ -45,9 +48,25 @@ export interface PortfolioSummary {
   total_cost: number;
   total_profit_loss: number;
   total_profit_loss_pct: number;
+  today_change: number;       // 今日盈亏
+  today_change_pct: number;  // 今日涨跌幅
   holdings: Holding[];
   industry_distribution: Record<string, number>;
   market_distribution: Record<string, number>;
+}
+
+export interface Quote {
+  code: string;
+  name?: string;
+  price?: number;
+  change?: number;
+  change_pct?: number;
+  volume?: number;
+  amount?: number;
+  high?: number;
+  low?: number;
+  open?: number;
+  timestamp?: string;
 }
 
 export interface FinancialIndicator {
@@ -121,6 +140,9 @@ export const holdingApi = {
   getSummary: () =>
     api.get<PortfolioSummary>('/holdings/summary'),
   
+  refreshPrices: () =>
+    api.post('/holdings/refresh'),
+  
   create: (holding: any) =>
     api.post<Holding>('/holdings/', holding),
   
@@ -132,6 +154,14 @@ export const holdingApi = {
   
   importBatch: (holdings: any[]) =>
     api.post('/holdings/batch', holdings),
+};
+
+export const quoteApi = {
+  getQuote: (code: string) =>
+    api.get<Quote>(`/quotes/${code}`),
+  
+  getBatchQuotes: (codes: string[]) =>
+    api.post<Record<string, Quote>>('/quotes/batch', codes),
 };
 
 export const analysisApi = {
