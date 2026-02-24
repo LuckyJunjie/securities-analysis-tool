@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.api import stocks, analysis, macro, alerts, holdings
+from app.api import stocks, analysis, macro, alerts, holdings, quotes
 from app.database import engine, Base
 
 
@@ -43,6 +43,7 @@ app.include_router(analysis.router, prefix="/api/analysis", tags=["分析"])
 app.include_router(macro.router, prefix="/api/macro", tags=["宏观"])
 app.include_router(alerts.router, prefix="/api/alerts", tags=["预警"])
 app.include_router(holdings.router, prefix="/api/holdings", tags=["持仓管理"])
+app.include_router(quotes.router, prefix="/api/quotes", tags=["行情"])
 
 
 @app.get("/")

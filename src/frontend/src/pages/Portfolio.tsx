@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { holdingApi, type Holding, type PortfolioSummary } from '../services/api';
+import { holdingApi, type PortfolioSummary } from '../services/api';
 
 export default function Portfolio() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
-  const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -12,12 +12,13 @@ export default function Portfolio() {
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await holdingApi.getSummary();
       setSummary(res.data);
-      setHoldings(res.data.holdings);
-    } catch (error) {
-      console.error('Failed to load portfolio:', error);
+    } catch (err: any) {
+      console.error('Failed to load portfolio:', err);
+      setError(err.response?.data?.detail || '加载持仓数据失败，请检查后端服务是否运行');
     } finally {
       setLoading(false);
     }
@@ -46,8 +47,41 @@ export default function Portfolio() {
   };
 
   if (loading) {
-    return <div className="loading">加载持仓数据...</div>;
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>加载持仓数据...</p>
+      </div>
+    );
   }
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <div className="error-icon">⚠️</div>
+        <h3>加载失败</h3>
+        <p>{error}</p>
+        <button className="btn btn-primary" onClick={loadData}>
+          重试
+        </button>
+        <p className="hint">
+          启动后端: <code>cd src/backend && uvicorn main:app --reload</code>
+        </p>
+      </div>
+    );
+  }
+
+  if (!summary || summary.holdings.length === 0) {
+    return (
+      <div className="empty-container">
+        <div className="empty-icon">📊</div>
+        <h3>暂无持仓数据</h3>
+        <p>请先添加持仓或导入数据</p>
+      </div>
+    );
+  }
+
+  const holdings = summary.holdings;
 
   return (
     <div>
@@ -57,22 +91,22 @@ export default function Portfolio() {
       <div className="grid grid-4">
         <div className="card">
           <div className="stat">
-            <div className="stat-value">{summary?.total_holdings || 0}</div>
+            <div className="stat-value">{summary.total_holdings}</div>
             <div className="stat-label">持仓股票</div>
           </div>
         </div>
         
         <div className="card">
           <div className="stat">
-            <div className="stat-value">{formatMoney(summary?.total_market_value_cny)}</div>
+            <div className="stat-value">{formatMoney(summary.total_market_value_cny)}</div>
             <div className="stat-label">总市值 (CNY)</div>
           </div>
         </div>
         
         <div className="card">
           <div className="stat">
-            <div className="stat-value" style={{ color: (summary?.total_profit_loss || 0) >= 0 ? '#4caf50' : '#f44336' }}>
-              {formatMoney(summary?.total_profit_loss)}
+            <div className="stat-value" style={{ color: summary.total_profit_loss >= 0 ? '#4caf50' : '#f44336' }}>
+              {formatMoney(summary.total_profit_loss)}
             </div>
             <div className="stat-label">盈亏金额</div>
           </div>
@@ -80,8 +114,8 @@ export default function Portfolio() {
         
         <div className="card">
           <div className="stat">
-            <div className="stat-value" style={{ color: (summary?.total_profit_loss_pct || 0) >= 0 ? '#4caf50' : '#f44336' }}>
-              {formatPct(summary?.total_profit_loss_pct)}
+            <div className="stat-value" style={{ color: summary.total_profit_loss_pct >= 0 ? '#4caf50' : '#f44336' }}>
+              {formatPct(summary.total_profit_loss_pct)}
             </div>
             <div className="stat-label">盈亏比例</div>
           </div>
@@ -90,10 +124,9 @@ export default function Portfolio() {
 
       {/* Distribution */}
       <div className="grid grid-2" style={{ marginTop: '1.5rem' }}>
-        {/* Industry Distribution */}
         <div className="card">
           <div className="card-title">📊 行业分布</div>
-          {summary?.industry_distribution && Object.keys(summary.industry_distribution).length > 0 ? (
+          {summary.industry_distribution && Object.keys(summary.industry_distribution).length > 0 ? (
             <div className="distribution-list">
               {Object.entries(summary.industry_distribution).map(([industry, pct]) => (
                 <div key={industry} className="distribution-item">
@@ -110,10 +143,9 @@ export default function Portfolio() {
           )}
         </div>
 
-        {/* Market Distribution */}
         <div className="card">
           <div className="card-title">🌏 市场分布</div>
-          {summary?.market_distribution && Object.keys(summary.market_distribution).length > 0 ? (
+          {summary.market_distribution && Object.keys(summary.market_distribution).length > 0 ? (
             <div className="distribution-list">
               {Object.entries(summary.market_distribution).map(([market, pct]) => (
                 <div key={market} className="distribution-item">
