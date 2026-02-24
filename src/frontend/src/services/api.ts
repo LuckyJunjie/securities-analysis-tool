@@ -1,4 +1,4 @@
-// API Service
+// API Service - Enhanced
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -14,8 +14,40 @@ export interface Stock {
   code: string;
   name: string;
   market?: string;
+  market_type: string;
   industry?: string;
+  sector?: string;
   status: string;
+}
+
+export interface Holding {
+  id: number;
+  stock_id: number;
+  stock_code: string;
+  stock_name: string;
+  market_type: string;
+  shares: number;
+  avg_cost: number;
+  avg_cost_cny: number;
+  current_price?: number;
+  current_price_cny?: number;
+  market_value?: number;
+  market_value_cny?: number;
+  profit_loss?: number;
+  profit_loss_pct?: number;
+  purchase_date?: string;
+}
+
+export interface PortfolioSummary {
+  total_holdings: number;
+  total_market_value: number;
+  total_market_value_cny: number;
+  total_cost: number;
+  total_profit_loss: number;
+  total_profit_loss_pct: number;
+  holdings: Holding[];
+  industry_distribution: Record<string, number>;
+  market_distribution: Record<string, number>;
 }
 
 export interface FinancialIndicator {
@@ -80,6 +112,26 @@ export const stockApi = {
   
   getStock: (code: string) =>
     api.get<Stock>(`/stocks/${code}`),
+};
+
+export const holdingApi = {
+  getHoldings: () =>
+    api.get<Holding[]>('/holdings/'),
+  
+  getSummary: () =>
+    api.get<PortfolioSummary>('/holdings/summary'),
+  
+  create: (holding: any) =>
+    api.post<Holding>('/holdings/', holding),
+  
+  update: (id: number, holding: any) =>
+    api.patch<Holding>(`/holdings/${id}`, holding),
+  
+  delete: (id: number) =>
+    api.delete(`/holdings/${id}`),
+  
+  importBatch: (holdings: any[]) =>
+    api.post('/holdings/batch', holdings),
 };
 
 export const analysisApi = {
