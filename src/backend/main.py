@@ -8,7 +8,9 @@ from contextlib import asynccontextmanager
 
 from app.api import stocks, analysis, macro, alerts, holdings, quotes
 from app.api import holdings_enhanced as holdings
-from app.database import engine, Base
+from app.api import sync
+from app.database import engine, Base, get_db
+from app.services.sync_service import init_scheduler, stop_scheduler
 
 
 @asynccontextmanager
@@ -16,8 +18,20 @@ async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时创建数据库表
     Base.metadata.create_all(bind=engine)
+    
+    # 初始化调度器
+    try:
+        from app.database import SessionLocal
+        db = SessionLocal()
+        init_scheduler(db)
+        db.close()
+    except Exception as e:
+        print(f"Scheduler init failed: {e}")
+    
     yield
+    
     # 关闭时清理资源
+    stop_scheduler()
     pass
 
 
@@ -45,6 +59,7 @@ app.include_router(macro.router, prefix="/api/macro", tags=["宏观"])
 app.include_router(alerts.router, prefix="/api/alerts", tags=["预警"])
 app.include_router(holdings.router, prefix="/api/holdings", tags=["持仓管理"])
 app.include_router(quotes.router, prefix="/api/quotes", tags=["行情"])
+app.include_router(sync.router, prefix="/api/sync", tags=["数据同步"])
 
 
 @app.get("/")
